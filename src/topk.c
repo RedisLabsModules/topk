@@ -383,7 +383,9 @@ int TopKAdd_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
   long long added = Vector_Size(add);
 
   /* Check if the zset exceeds k. */
-  long long overflow = (k ? RedisModule_ValueLength(key) + added - k : 0);
+  long long olen = RedisModule_ValueLength(key);
+  long long ocap = k - olen;
+  long long overflow = (k ? olen + added - k : 0);
   Vector *rem = NULL;
   long long remmed = 0;
   RedisModuleString *ele;
@@ -436,23 +438,29 @@ int TopKAdd_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
       free(zele);
     }
     Vector_Free(rem);
+
+    /* In case there is less capacity than new elements, R downsample the new. */
+    long long ncap = ocap + remmed;
+    for (i = ncap; ((i < added) && ncap); i++) {
+      j = rand() % i;
+      if (j < remmed) {
+        Vector_Get(add, j, &ele);
+        Vector_Get(add, i, &ele);
+        Vector_Put(add, j, ele);
+      } else {
+        Vector_Get(add, i, &ele);
+      }
+    }
+    added = ncap;
   }
 
-  /* In case there is less capacity than new elements, R downsample the new. */
-  for (i = remmed; ((i < added) && remmed); i++) {
-    j = rand() % i;
-    if (j < remmed) {
-      Vector_Get(add, j, &ele);
-      Vector_Get(add, i, &ele);
-      Vector_Put(add, j, ele);
-    } else {
-      Vector_Get(add, i, &ele);
-    }
-  }
+  // Overflow - remmed == 0
+  // remmed < added
+  // remmed == added
 
   /* Conclude by adding all new elements. */
   score = -(meta->offset) + 1;
-  added = remmed;
+
   for (i = 0; i < added; i++) {
     flags = REDISMODULE_ZADD_NX;
     Vector_Get(add, i, &ele);
