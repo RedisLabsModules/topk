@@ -454,10 +454,6 @@ int TopKAdd_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
     added = ncap;
   }
 
-  // Overflow - remmed == 0
-  // remmed < added
-  // remmed == added
-
   /* Conclude by adding all new elements. */
   score = -(meta->offset) + 1;
 
