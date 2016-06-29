@@ -577,7 +577,7 @@ int TopKPRange_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
       RedisModule_ReplyWithString(ctx, ele);
     }
   } else {
-    for (i = Vector_Size(reply); i > 0; i--) {
+    for (i = Vector_Size(reply) - 1; i >= 0; i--) {
       Vector_Get(reply, i, &ele);
       RedisModule_ReplyWithString(ctx, ele);
     }
