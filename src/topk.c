@@ -577,7 +577,7 @@ int TopKPRange_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
       RedisModule_ReplyWithString(ctx, ele);
     }
   } else {
-    for (i = Vector_Size(reply); i > 0; i--) {
+    for (i = Vector_Size(reply) - 1; i >= 0; i--) {
       Vector_Get(reply, i, &ele);
       RedisModule_ReplyWithString(ctx, ele);
     }
@@ -629,28 +629,25 @@ int TopKPRank_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
     /* TODO: if variadic, it makes sense to reduce the work by sorting args by
      * rank &
      * incrementally computing the sums */
-    /* Sum the scores of elements just before the current. */
-    double ts;
-    long long cl = 0;
+    /* Sum of elements which has score less than the current. */
+     long long cl = 0;
     RedisModule_ZsetFirstInScoreRange(key, 0.0, score, 1, 1);
     while (!RedisModule_ZsetRangeEndReached(key)) {
-      RedisModule_ZsetRangeCurrentElement(key, &ts);
-      cl += (long long)ts;
+      cl++;
       RedisModule_ZsetRangeNext(key);
     }
     RedisModule_ZsetRangeStop(key);
 
-    /* Sum the scores of the elements with the same score as current. */
+    /* Sum of the elements with the same score as current. */
     long long ce = 0;
     RedisModule_ZsetFirstInScoreRange(key, score, score, 0, 0);
     while (!RedisModule_ZsetRangeEndReached(key)) {
-      RedisModule_ZsetRangeCurrentElement(key, &ts);
-      ce += (long long)ts;
+      ce++;
       RedisModule_ZsetRangeNext(key);
     }
     RedisModule_ZsetRangeStop(key);
 
-    long long prank = (((double)cl + (double)ce) / (double)meta->sum) * 100;
+    long long prank = (((double)cl + (double)ce/2) / (double)meta->sum) * 100;
     RedisModule_ReplyWithLongLong(ctx, prank);
   }
   return REDISMODULE_OK;
