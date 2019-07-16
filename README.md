@@ -1,3 +1,6 @@
+Update: this project has been suspended and superceded by http://rebloom.io
+===
+
 TopK: an almost deterministic top k elements counter Redis module
 ===
 
